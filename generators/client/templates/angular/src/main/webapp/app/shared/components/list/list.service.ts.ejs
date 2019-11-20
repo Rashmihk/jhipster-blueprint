@@ -1,0 +1,21 @@
+/**
+ * @author Faizal Vasaya
+ * @description An abstract contract for all the list screen service classes.
+ */
+import { Observable } from 'rxjs/Observable';
+import { HttpResponse } from '@angular/common/http';
+
+export abstract class ListService<T> {
+
+    public abstract create(t: T): Observable<any>;
+
+    public abstract update(t: T): Observable<any>;
+
+    public abstract find(id: number): Observable<any>;
+
+    public abstract query(req?: any): Observable<HttpResponse<T[]>>;
+
+    public abstract delete(id: number): Observable<HttpResponse<any>>;
+
+    public abstract exportReport(type: string, req?: any): Observable<any>;
+}

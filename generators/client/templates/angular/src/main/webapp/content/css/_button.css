@@ -1,0 +1,17 @@
+<%# created class for button primary -%>
+
+.btn-primary{
+    background-color: rgb(12,48,109);
+}
+
+<%# created class for button primary hover -%>
+
+.btn-primary:hover{
+    background-color: rgb(12,48,109);
+}
+
+<%#  created class for button secondary -%>
+
+.btn-secondary{
+    background-color:#6c757d; 
+}

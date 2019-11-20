@@ -1,0 +1,240 @@
+<%#
+ Copyright 2013-2018 the original author or authors from the JHipster project.
+
+ This file is part of the JHipster project, see http://www.jhipster.tech/
+ for more information.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-%>
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef } from '@angular/core';
+<%_ if (pagination === 'pagination' || pagination === 'pager') { _%>
+import { ActivatedRoute, Router } from '@angular/router';
+<%_ } else if (searchEngine === 'elasticsearch') { _%>
+import { ActivatedRoute } from '@angular/router';
+<%_ } _%>
+import { Subscription } from 'rxjs/Subscription';
+import { JhiEventManager, <% if (pagination !== 'no') { %>JhiParseLinks <% } %><% if (fieldsContainBlob) { %>, JhiDataUtils<% } %> } from 'ng-jhipster';
+import { <%= entityAngularName %> } from './<%= entityFileName %>.model';
+import { <%= entityAngularName %>Service } from './<%= entityFileName %>.service';
+<%# Added SpinnerService -%>
+import { ExportType, SpinnerService } from '@fhlbny-ui-commons/components';
+import { FormBuilder } from '@angular/forms';
+<%_ for (idx in fields) {
+    const fieldType = fields[idx].fieldType;
+_%>
+<%_  if (fieldType === 'LocalDate') { _%>
+import { JhiDateUtils } from 'ng-jhipster';
+<%_ break _%>
+<%_  } _%>
+<%_ } _%>
+<%_ for (idx in fields) {
+    const fieldType = fields[idx].fieldType;
+_%>
+<%_  if ( ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+import { DateUtils } from '../../shared/utilities/date-utils';
+<%_ break _%>
+<%_  } _%>
+<%_ } _%>
+<%_ for (idx in fields) {
+    const fieldType = fields[idx].fieldType;
+_%>
+<%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+import {  NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { HostListener, ViewChild } from '@angular/core';
+import { ElementRef } from '@angular/core';
+<%_ break _%>
+<%_  } _%>
+<%_ } _%>
+import { ListComponent } from '../../shared/components/list/list.component';
+
+@Component({
+    selector: '<%= jhiPrefixDashed %>-<%= entityFileName %>-list',
+    templateUrl: './<%= entityFileName %>-list.component.html'
+})
+export class <%= entityAngularName %>ListComponent extends ListComponent<<%= entityAngularName %>> implements OnInit, OnDestroy, AfterViewInit {
+
+    breadcrumb: object = {};
+    <%_ for (idx in fields) {
+        const fieldType = fields[idx].fieldType;
+        const fieldName = fields[idx].fieldName;
+    _%>
+    <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+     // AN element ref of the input element to apply styling to the input box
+     @ViewChild('<%= fieldName %>Container') <%= fieldName %>Ele: ElementRef;
+     // An NgbInputDatepicker to perform actions on datepicker
+    @ViewChild('date_<%= fieldName %>Dp') date_<%= fieldName %>Dp: NgbInputDatepicker;
+    <%_  } _%>
+    <%_ } _%>
+    <%_ if (pagination === 'pagination' || pagination === 'pager') { _%>
+<%- include('pagination-template', {toArrayString: toArrayString}); -%>
+    <%_ } else if (pagination === 'infinite-scroll') { _%>
+<%- include('infinite-scroll-template', {toArrayString: toArrayString}); -%>
+    <%_ } else if (pagination === 'no') { _%>
+<%- include('no-pagination-template', {toArrayString: toArrayString}); -%>
+    <%_ } _%>
+    ngOnInit() {
+        super.ngOnInit();
+        this.searchFilterForm = this.fb.group({
+            'id': [this.filterFields[0].value || ''],
+            <%_ for (idx in fields) {
+                const fieldName = fields[idx].fieldName;
+                const count = parseInt(idx) + 1;
+                const fieldType = fields[idx].fieldType;_%>
+            <%_ if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%> 
+                '<%= fieldName %>': [this.filterFields[<%=count%>].value || null],
+            <%_ } else { _%> 
+                '<%= fieldName %>': [this.filterFields[<%=count%>].value || ''],
+                <%_ } _%> 
+            <%_ } _%>
+        });
+        this.registerChangeIn<%= entityClassPlural %>();
+    }
+
+    ngAfterViewInit() {
+        this.searchObject = this.getSearchObject();
+        super.ngAfterViewInit();
+    }
+
+    <%_ for (idx in fields) {
+        const fieldType = fields[idx].fieldType;
+        const fieldName = fields[idx].fieldName;
+    _%>
+    <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+    // close datepicker popup when click outside of it
+    @HostListener('document:click', ['$event'])
+    closeUponOutsideClick(event: any) {
+        <%_ for (idx in fields) {
+            const fieldType = fields[idx].fieldType;
+            const fieldName = fields[idx].fieldName;
+        _%>
+        <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+        if (this.date_<%= fieldName %>Dp.isOpen() && !this.<%= fieldName %>Ele.nativeElement.contains(event.target)) {
+            this.date_<%= fieldName %>Dp.close();
+        }
+        <%_  } _%>
+        <%_ } _%>
+    }
+    <%_ break _%>
+    <%_  } _%>
+    <%_ } _%>
+
+    onSearchSubmit(searchObject: object) {
+        this.pageData.currentPage = 0;
+        this.searchObject = this.getSearchObject();
+        this.changeStateParams();
+        this.loadAll();
+    }
+    ngOnDestroy() {
+        this.eventManager.destroy(this.eventSubscriber);
+    }
+    <%_ if (fieldsContainBlob) { _%>
+    byteSize(field) {
+        return this.dataUtils.byteSize(field);
+    }
+
+    openFile(contentType, field) {
+        return this.dataUtils.openFile(contentType, field);
+    }
+    <%_ } _%>
+    <%_
+    let eventCallBack = 'this.loadAll()';
+    if (pagination === 'infinite-scroll') {
+        eventCallBack = 'this.reset()';
+    } _%>
+    registerChangeIn<%= entityClassPlural %>() {
+        this.eventSubscriber = this.eventManager.subscribe('<%= entityInstance %>ListModification', (response) => <%= eventCallBack %>);
+    }
+
+    <%_ if (pagination !== 'no') { _%>
+        <%_ if (databaseType !== 'cassandra') { _%>
+        <%_ } _%>
+        <%_ if (pagination === 'pagination' || pagination === 'pager') { _%>
+        <%_ } else if (pagination === 'infinite-scroll') { _%>
+    private onSuccess(data, headers) {
+        this.links = this.parseLinks.parse(headers.get('link'));
+        this.totalItems = headers.get('X-Total-Count');
+        for (let i = 0; i < data.length; i++) {
+            this.<%= entityInstancePlural %>.push(data[i]);
+        }
+    }
+
+    <%_ }} _%>
+    addNewRecord() {
+        this.router.navigate(['/' + '<%= entityUrl %>' + '-new']);
+    }
+
+    onExportClicked(exportType: ExportType, ) {
+        super.onExportClicked(exportType, 'FHLBNY-Report.');
+    }
+    public getSearchObject(): object {
+        const searchObject: any = {};
+        if (this.searchFilterForm.value['id']) {
+            searchObject[`id.equals`] = this.searchFilterForm.value['id'];
+        }
+        <%_ for (idx in fields) {
+            const fieldName = fields[idx].fieldName;
+            const fieldType = fields[idx].fieldType;_%>
+        <%_ if (fieldType === 'LocalDate') { _%> 
+        if (this.searchFilterForm.value['<%= fieldName %>']) {
+            searchObject[`<%= fieldName %>.equals`] = this.jhiDateUtils.convertLocalDateToServer(this.searchFilterForm.value['<%= fieldName %>']);
+        }
+        <%_ } else if (['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+        if (this.searchFilterForm.value['<%= fieldName %>']) {
+            searchObject[`<%= fieldName %>.equals`] = this.dateUtils.toIsoString(this.searchFilterForm.value['<%= fieldName %>']);
+        }
+        <%_ } else if (['Integer', 'Long', 'Float', 'Double', 'BigDecimal'].includes(fieldType)) { _%>
+        if (this.searchFilterForm.value['<%= fieldName %>']) {
+            searchObject[`<%= fieldName %>.equals`] = this.searchFilterForm.value['<%= fieldName %>'];
+        }
+        <%_ } else if (fieldType === 'Boolean') { _%>
+            if (this.searchFilterForm.value['<%= fieldName %>'].trim()) {
+                if ( this.searchFilterForm.value['<%= fieldName %>'].trim() === 'true') {
+                    searchObject[`<%= fieldName %>.equals`] = 1 ;
+                }else if (this.searchFilterForm.value['<%= fieldName %>'].trim() === 'false') {
+                    searchObject[`<%= fieldName %>.equals`] = 0 ;
+                }
+            }
+        <%_ } else { _%> 
+        if (this.searchFilterForm.value['<%= fieldName %>'].trim()) {
+            searchObject[`<%= fieldName %>.contains`] = this.searchFilterForm.value['<%= fieldName %>'].trim();
+        }
+        <%_ } _%> 
+        <%_ } _%>
+        return searchObject;
+    }
+    public resetSearchFilter() {
+        this.searchFilterForm.patchValue({
+            'id': '',
+            <%_ for (idx in fields) {
+                const fieldName = fields[idx].fieldName;
+                const fieldType = fields[idx].fieldType;_%>
+            <%_ if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%> 
+                '<%= fieldName %>': null,
+            <%_ } else { _%> 
+                '<%= fieldName %>': '',
+                <%_ } _%> 
+            <%_ } _%>
+        });
+        this.getSearchObject();
+    }
+    reLoad() {
+        this.resetSearchFilter();
+        this.sortConfig = {
+            ascending: true,
+            callback: this.reset.bind(this),
+            predicate: 'id'
+        };
+        this.searchObject = this.getSearchObject();
+        this.reLoadPage();
+    }
+}

@@ -1,0 +1,25 @@
+<ng-container *ngIf="templateType === 'input'" [ngTemplateOutlet]="inputRef" [ngTemplateOutletContext]="{ label: label}">
+</ng-container>
+
+<ng-container *ngIf="templateType === 'button'" [ngTemplateOutlet]="buttonRef">
+</ng-container>
+
+<ng-template #input let-label="label">
+    <div class="form-group row">
+        <label for="{{label}}" class="col-12 col-sm-3 col-form-label text-sm-right">
+            {{label}}
+        </label>
+        <div [ngClass]="{'col-12 col-lg-6 col-sm-8': layout === 'SINGLE_COLUMN', 'col ' : layout === 'MULTI_COLUMN' }">
+            <ng-content></ng-content>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #button>
+    <div class="form-group text-center row mb-0">
+        <div class="col-12 col-sm-3"></div>
+        <div class="col-12 col-lg-6 col-sm-8 mt-2" [ngClass]="{'text-right': layout === 'SINGLE_COLUMN'}">
+            <ng-content select="[button]"></ng-content>
+        </div>
+    </div>
+</ng-template>

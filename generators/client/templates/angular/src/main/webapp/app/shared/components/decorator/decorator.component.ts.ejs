@@ -1,0 +1,33 @@
+/**
+ * @author Faizal Vasaya
+ * A decorator that defines template for various html elements.
+ */
+import { Component, TemplateRef, Input, OnInit, ViewChild } from '@angular/core';
+import { Layout } from './layout.model';
+
+@Component({
+    selector: 'fhlbny-decorator',
+    templateUrl: 'decorator.component.html',
+    styles: [
+        `:host {
+            display: block;
+          }`
+    ]
+})
+export class DecoratorComponent {
+    // The type of the template that needs to be rendered
+    @Input()
+    templateType: string;
+    // The label of the input type
+    @Input()
+    label?: string;
+    @Input()
+    layout?: Layout;
+
+    // The template reference element to the template of #formInput
+    @ViewChild('input') inputRef: TemplateRef<any>;
+
+    // The template reference element to the template of #formButtonRef
+    @ViewChild('button') buttonRef: TemplateRef<any>;
+
+}

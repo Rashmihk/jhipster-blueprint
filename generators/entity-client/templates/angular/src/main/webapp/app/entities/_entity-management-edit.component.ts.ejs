@@ -1,0 +1,427 @@
+<%#
+Copyright 2013-2018 the original author or authors from the JHipster project.
+
+This file is part of the JHipster project, see http://www.jhipster.tech/
+for more information.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-%>
+<%_
+const i18nToLoad = [entityInstance];
+for (const idx in fields) {
+    if (fields[idx].fieldIsEnum === true) {
+        i18nToLoad.push(fields[idx].enumInstance);
+    }
+}
+const query = generateEntityQueries(relationships, entityInstance, dto);
+const queries = query.queries;
+const variables = query.variables;
+let hasManyToMany = query.hasManyToMany;
+_%>
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
+import { Observable } from 'rxjs/Observable';
+<%_ if (fieldsContainBlob) { _%>
+import {<% if (fieldsContainBlob) { %> JhiDataUtils<% } %> } from 'ng-jhipster';
+<%_ } _%>
+import { <%= entityAngularName %> } from './<%= entityFileName %>.model';
+import { <%= entityAngularName %>Service } from './<%= entityFileName %>.service';
+<%_
+let hasRelationshipQuery = false;
+Object.keys(differentRelationships).forEach(key => {
+    const hasAnyRelationshipQuery = differentRelationships[key].some(rel =>
+        (rel.relationshipType === 'one-to-one' && rel.ownerSide === true && rel.otherEntityName !== 'user')
+            || rel.relationshipType !== 'one-to-many'
+    );
+    if (hasAnyRelationshipQuery) {
+        hasRelationshipQuery = true;
+    }
+    if (differentRelationships[key].some(rel => rel.relationshipType !== 'one-to-many')) {
+        const uniqueRel = differentRelationships[key][0];
+        if (uniqueRel.otherEntityAngularName !== entityAngularName) {
+_%>
+import { <%= uniqueRel.otherEntityAngularName %>, <%= uniqueRel.otherEntityAngularName%>Service } from '../<%= uniqueRel.otherEntityModulePath %>';
+<%_     }
+    }
+}); _%>
+import { ToasterService, ToasterType, ToasterTitle, FormType, SpinnerService} from '@fhlbny-ui-commons/components';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+<%_ for (idx in fields) {
+    const fieldType = fields[idx].fieldType;
+_%>
+<%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+import { DateUtils } from '../../shared/utilities/date-utils';
+import {  NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { HostListener, ViewChild } from '@angular/core';
+<%_ break _%>
+<%_  } _%>
+<%_ } _%>
+<%_ for (idx in fields) {
+    const fieldType = fields[idx].fieldType;
+_%>
+<%_  if (fieldsContainImageBlob|fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+import { ElementRef } from '@angular/core';
+<%_ break _%>
+<%_  } _%>
+<%_ } _%>
+@Component({
+    selector: '<%= jhiPrefixDashed %>-<%= entityFileName %>-edit',
+    templateUrl: './<%= entityFileName %>-edit.component.html'
+})
+export class <%= entityAngularName %>EditComponent implements OnInit {
+    <%= entityInstance %>Form: FormGroup;
+    formType: FormType;
+    <%= entityInstance %>: <%= entityAngularName %>;
+    isSaving: boolean;
+    breadcrumb: object = {};
+    panelTitle: String = '';
+    <%_
+    for (const idx in variables) { %>
+    <%- variables[idx] %>
+    <%_ } _%>
+    <%_ for (idx in fields) {
+        const fieldName = fields[idx].fieldName;
+        const fieldType = fields[idx].fieldType;
+        if (fieldType === 'LocalDate') { _%>
+    // <%= fieldName %>Dp: any;
+        <%_ }
+    } _%>
+    <%_ for (idx in fields) {
+        const fieldType = fields[idx].fieldType;
+        const fieldName = fields[idx].fieldName;
+    _%>
+    <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+     // AN element ref of the input element to apply styling to the input box
+     @ViewChild('<%= fieldName %>Container') <%= fieldName %>Ele: ElementRef;
+     // An NgbInputDatepicker to perform actions on datepicker
+    @ViewChild('<%= fieldName %>Dp') <%= fieldName %>Dp: NgbInputDatepicker;
+    <%_  } _%>
+    <%_ } _%>
+
+    constructor(
+        <%# Commented declaration for modal, because we have changed Modal Changed to Page-%>
+        <%_ if (fieldsContainBlob) { _%>
+        private dataUtils: JhiDataUtils,
+        <%_ } _%>
+        <%_ if (queries && queries.length > 0) { _%>
+        private jhiAlertService: JhiAlertService,
+        <%_ } _%>
+        private <%= entityInstance %>Service: <%= entityAngularName %>Service,
+        <%_ Object.keys(differentRelationships).forEach(key => {
+            if (differentRelationships[key].some(rel => rel.relationshipType !== 'one-to-many')) {
+                const uniqueRel = differentRelationships[key][0];
+                if (uniqueRel.otherEntityAngularName !== entityAngularName) { _%>
+        private <%= uniqueRel.otherEntityName %>Service: <%= uniqueRel.otherEntityAngularName %>Service,
+        <%_
+                }
+            }
+        }); _%>
+        <%_ if (fieldsContainImageBlob) { _%>
+        private elementRef: ElementRef,
+        <%_ } _%>
+        private route: ActivatedRoute,
+        private router: Router,
+        private toaster: ToasterService,
+        <%_ for (idx in fields) {
+            const fieldType = fields[idx].fieldType;
+        _%>
+        <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+        private dateConverter: DateUtils,
+        <%_ break _%>
+        <%_  } _%>
+        <%_ } _%>
+        private fb: FormBuilder,
+        private spinner: SpinnerService
+    ) {
+        this.formType = FormType.add;
+    }
+
+    ngOnInit() {
+              this.route.params.subscribe((params) => {
+                if (params['id']) {
+                    this.formType = FormType.update;
+                    this.load(params['id']);
+                    this.panelTitle = 'Edit <%= entityAngularName %>';
+                    this.breadcrumb = {
+                        home: 'Home',
+                        menu: 'Entities',
+                        entity: '<%= entityUrl %>',
+                        entityEdit: 'Edit',
+                        entityUrl: '<%= entityUrl %>'
+                    };
+                }else {
+                    this.<%= entityInstance %> = new <%= entityAngularName %>();
+                    this.panelTitle = 'Add <%= entityAngularName %>';
+                    this.breadcrumb = {
+                        home: 'Home',
+                        menu: 'Entities',
+                        entity: '<%= entityUrl %>',
+                        entityEdit: 'Add',
+                        entityUrl: '<%= entityUrl %>'
+                    };
+                }
+            });
+            <%_ for (idx in queries) { _%>
+                <%- queries[idx] %>
+                <%_ } _%>
+            this.createForm();
+    }
+    <%_ for (idx in fields) {
+        const fieldType = fields[idx].fieldType;
+        const fieldName = fields[idx].fieldName;
+    _%>
+    <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+    // close datepicker popup when click outside of it
+    @HostListener('document:click', ['$event'])
+    closeUponOutsideClick(event: any) {
+        <%_ for (idx in fields) {
+            const fieldType = fields[idx].fieldType;
+            const fieldName = fields[idx].fieldName;
+        _%>
+        <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+        if (this.<%= fieldName %>Dp.isOpen() && !this.<%= fieldName %>Ele.nativeElement.contains(event.target)) {
+            this.<%= fieldName %>Dp.close();
+        }
+        <%_  } _%>
+        <%_ } _%>
+    }
+    <%_ break _%>
+    <%_  } _%>
+    <%_ } _%>
+    createForm() {
+         this.<%= entityInstance %>Form = this.fb.group({
+            'id' : [{ value: '', disabled: true }, ''],
+             <%_ for (idx in fields) {
+                let required = false;
+                let minlength = false;
+                let maxlength = false;
+                const fieldName = fields[idx].fieldName;
+                const fieldTypeBlobContent = fields[idx].fieldTypeBlobContent;
+                const fieldNameCapitalized = fields[idx].fieldNameCapitalized;
+                const fieldValidateRules = fields[idx].fieldValidateRules;
+                const fieldType = fields[idx].fieldType;
+                const fieldValidate = fields[idx].fieldValidate;
+                var fieldInputType = 'text';
+                if (['Integer', 'Long', 'Float', 'Double', 'BigDecimal'].includes(fieldType)) {
+                    fieldInputType = 'number';
+                } else if (fieldType === 'LocalDate'|| ['Instant', 'ZonedDateTime'].includes(fieldType)) {
+                    fieldInputType = 'date';
+                } else if (['byte[]', 'ByteBuffer'].includes(fieldType) && fieldTypeBlobContent !== 'text') {
+                    fieldInputType = 'blob';
+                }
+                if (fieldValidate === true && fieldValidateRules.includes('required')) {
+                        required = true;
+                }
+                if (fieldValidate === true && fieldValidateRules.includes('minlength')) {
+                    minlength = true;
+                }
+                if (fieldValidate === true && fieldValidateRules.includes('maxlength')) {
+                    maxlength = true;
+                }
+                _%>
+        <%_ if (required && ! minlength  && ! maxlength && fieldInputType != 'date' ) { _%>
+            '<%= fieldName %>': ['', [Validators.required]],
+        <%_ } else if (required && ! minlength  && ! maxlength && fieldInputType === 'date' ) { _%>
+            '<%= fieldName %>': [null, [Validators.required]],
+        <%_ } else if ( ! required && minlength && ! maxlength) { _%>
+            '<%= fieldName %>': ['', [Validators.minLength(<%= fields[idx].fieldValidateRulesMinlength %>)]],
+        <%_ } else if ( ! required && ! minlength &&  maxlength) { _%>
+            '<%= fieldName %>': ['', [Validators.maxLength(<%= fields[idx].fieldValidateRulesMaxlength %>)]],
+        <%_ } else if (required && minlength && !maxlength) { _%>
+            '<%= fieldName %>': ['', [Validators.required, Validators.minLength(<%= fields[idx].fieldValidateRulesMinlength %>)]],
+        <%_ } else if (required && ! minlength && maxlength) { _%>
+            '<%= fieldName %>': ['', [Validators.required, Validators.maxLength(<%= fields[idx].fieldValidateRulesMaxlength %>)]],
+        <%_ } else if (required && minlength && maxlength) { _%>
+            '<%= fieldName %>': ['', [Validators.required, Validators.minLength(<%= fields[idx].fieldValidateRulesMinlength %>), Validators.maxLength(<%= fields[idx].fieldValidateRulesMaxlength %>)]],
+        <%_ } else if (! required &&  minlength && maxlength) { _%>
+            '<%= fieldName %>': ['', [Validators.minLength(<%= fields[idx].fieldValidateRulesMinlength %>), Validators.maxLength(<%= fields[idx].fieldValidateRulesMaxlength %>)]],
+        <%_ } else if (! required && ! minlength  && ! maxlength && fieldInputType === 'date' ) { _%>
+            '<%= fieldName %>': [null, ''],
+        <%_ } else if (fieldInputType === 'blob') { _%>
+            '<%= fieldName %>': ['', ''],
+            '<%= fieldName %>ContentType': ['', ''],
+        <%_ } else { _%>
+            '<%= fieldName %>': ['', ''],
+        <%_ } _%>
+    <%_ } _%>
+        });
+    }
+
+    load(id) {
+        this.spinner.spin(true);
+        this.<%= entityInstance %>Service.find(id)
+            .subscribe((<%= entityInstance %>Response: HttpResponse<<%= entityAngularName %>>) => {
+                this.<%= entityInstance %> = <%= entityInstance %>Response.body;
+                this.<%= entityInstance %>Form.patchValue(
+                    {
+                        'id' : this.<%=entityInstance%>.id,
+                        <%_ for (idx in fields) {
+                            const fieldName = fields[idx].fieldName;
+                            const fieldType = fields[idx].fieldType;
+                            const fieldTypeBlobContent = fields[idx].fieldTypeBlobContent;
+                        _%>
+                     <%_  if (fieldType === 'LocalDate' || ['Instant', 'ZonedDateTime'].includes(fieldType)) { _%>
+                        '<%= fieldName %>': this.dateConverter.fromIsoString(this.<%=entityInstance%>.<%=fieldName%>),
+                    <%_  } else if (['byte[]', 'ByteBuffer'].includes(fieldType) && fieldTypeBlobContent !== 'text') { _%>
+                        '<%= fieldName %>': this.<%=entityInstance%>.<%=fieldName%>,
+                        '<%= fieldName %>ContentType': this.<%=entityInstance%>.<%=fieldName%>ContentType,
+                      <%_   } else { _%>
+                        '<%= fieldName %>': this.<%=entityInstance%>.<%=fieldName%>,
+                     <%_  } _%>
+                        <%_ } _%>
+                    }
+                );
+            this.spinner.spin(false);
+        },
+        (<%= entityInstance %>Response: HttpErrorResponse) => {
+           this.spinner.spin(false);
+         });
+    }
+    previousState() {
+        this.router.navigate(['<%= entityUrl %>']);
+    }
+    <%_ if (fieldsContainBlob) { _%>
+    byteSize(field) {
+        return this.dataUtils.byteSize(field);
+    }
+
+    openFile(contentType, field) {
+        return this.dataUtils.openFile(contentType, field);
+    }
+
+    setFileData(event, entity, field, isImage) {
+        this.dataUtils.setFileData(event, entity, field, isImage);
+    }
+
+    <%_ if (fieldsContainImageBlob) { _%>
+    clearInputImage(field: string, fieldContentType: string, idInput: string) {
+        this.dataUtils.clearInputImage(this.<%= entityInstance %>, this.elementRef, field, fieldContentType, idInput);
+    }
+    <%_ } _%>
+    <%_ } _%>   
+    save() {
+        this.markControlsAsDirty();
+        if (this.<%= entityInstance %>Form.valid) {
+            this.isSaving = true;
+            if (this.<%= entityInstance %>Form.getRawValue().id !== undefined && this.<%= entityInstance %>Form.getRawValue().id !== '') {
+                this.subscribeToSaveResponse(
+                    this.<%= entityInstance %>Service.update(this.<%= entityInstance %>Form.getRawValue()));
+            } else {
+                this.subscribeToSaveResponse(
+                    this.<%= entityInstance %>Service.create(this.<%= entityInstance %>Form.getRawValue()));
+            }
+        }
+    }
+
+    markControlsAsDirty() {
+        Object.keys(this.<%= entityInstance %>Form.controls).map((controlName) => {
+            this.<%= entityInstance %>Form.get(controlName).markAsDirty({ onlySelf: true });
+        });
+    }
+
+    delete() {
+        if (this.<%= entityInstance %>Form.getRawValue().id !== undefined && this.<%= entityInstance %>Form.getRawValue().id !== '') {
+            this.subscribeToDeleteResponse(
+                this.<%= entityInstance %>Service.delete(this.<%= entityInstance %>Form.getRawValue().id));
+        } else {
+            this.onSaveError();
+        }
+    }
+
+    private subscribeToDeleteResponse(result: Observable<HttpResponse<<%= entityAngularName %>>>) {
+        result.subscribe((res: HttpResponse<<%= entityAngularName %>>) =>
+            this.onDeleteSuccess(res.body), (res: HttpErrorResponse) => this.onSaveError());
+    }
+
+    private onDeleteSuccess(result: <%= entityAngularName %>) {
+        this.isSaving = false;
+        this.toaster.toast({
+
+            message: 'Deleted successfully',
+            type: ToasterType.Success,
+            title : ToasterTitle.Success
+
+        });
+        this.router.navigate(['<%= entityUrl %>']);
+    }
+
+    private subscribeToSaveResponse(result: Observable<HttpResponse<<%= entityAngularName %>>>) {
+        this.spinner.spin(true);
+        result.subscribe((res: HttpResponse<<%= entityAngularName %>>) =>
+            this.onSaveSuccess(res.body), (res: HttpErrorResponse) => this.onSaveError());
+    }
+
+    private onSaveSuccess(result: <%= entityAngularName %>) {
+        this.spinner.spin(false);
+        this.isSaving = false;
+        if (this.<%= entityInstance %>Form.getRawValue().id !== undefined && this.<%= entityInstance %>Form.getRawValue().id !== '') {
+        	this.toaster.toast({
+            message: 'Updated successfully',
+            type: ToasterType.Success,
+            title : ToasterTitle.Success
+        	});
+        } else {
+        	this.toaster.toast({
+                message: 'Added successfully',
+                type: ToasterType.Success,
+                title : ToasterTitle.Success
+            });
+        }
+        this.router.navigate(['<%= entityUrl %>']);
+    }
+
+    private onSaveError() {
+        this.spinner.spin(false);
+        this.toaster.toast({
+            message: 'Error',
+            type: ToasterType.Error,
+            title : ToasterTitle.Error
+        });
+        this.isSaving = false;
+    }
+    <%_ if (queries && queries.length > 0) { _%>
+
+    private onError(error: any) {
+         this.toaster.toast({
+	     message: 'Error',
+	     type: ToasterType.Error,
+	     title : ToasterTitle.Error
+        });
+    }
+    <%_ } _%>
+    <%_
+    const entitiesSeen = [];
+    for (idx in relationships) {
+        const otherEntityNameCapitalized = relationships[idx].otherEntityNameCapitalized;
+        if(relationships[idx].relationshipType !== 'one-to-many' && !entitiesSeen.includes(otherEntityNameCapitalized)) {
+    _%>
+
+    track<%- otherEntityNameCapitalized -%>ById(index: number, item: <%- relationships[idx].otherEntityAngularName -%>) {
+        return item.id;
+    }
+    <%_ entitiesSeen.push(otherEntityNameCapitalized); } } _%>
+    <%_ if (hasManyToMany) { _%>
+
+    getSelected(selectedVals: Array<any>, option: any) {
+        if (selectedVals) {
+            for (let i = 0; i < selectedVals.length; i++) {
+                if (option.id === selectedVals[i].id) {
+                    return selectedVals[i];
+                }
+            }
+        }
+        return option;
+    }
+    <%_ } _%>
+}

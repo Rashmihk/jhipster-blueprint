@@ -1,0 +1,17 @@
+import { MenuModel } from '@fhlbny-ui-commons/navbar';
+
+export const appName = '<%=angularXAppName%>';
+
+const administrationMenuList = [
+//    new MenuModel('User management', null, '/user-management'),
+    new MenuModel('Metrics', null, '/jhi-metrics'),
+    new MenuModel('Health', null, '/jhi-health'),
+    new MenuModel('Configuration', null, '/jhi-configuration'),
+//    new MenuModel('Audits', null, '/audits'),
+    new MenuModel('Logs', null, '/logs'),
+    new MenuModel('API', null, '/docs')
+ ];
+
+export const mainMenuList: MenuModel[] = [
+    new MenuModel('Administration', administrationMenuList, null)
+];

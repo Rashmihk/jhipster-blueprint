@@ -1,0 +1,236 @@
+/**
+ * @author Faizal Vasaya
+ * @description A parent component that will be inhertied by all the list components of this application. This will enable to subclass to create
+ * an IS-A relationship.
+ */
+
+import { OnInit, OnDestroy, AfterViewInit, ElementRef } from '@angular/core';
+import { FormGroup, FormBuilder } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
+import * as FileSaver from 'file-saver';
+// -------------------------------------//
+import { FilterField, PageData, SortConfig, SpinnerService, ExportType } from '@fhlbny-ui-commons/components';
+import { ITEMS_PER_PAGE } from '../../constants/pagination.constants';
+import { QueryParamsStateService } from '@fhlbny-ui-commons/utils';
+import { ObservableUnsubscriptionUtilities } from '../../utilities/observable-unsubscription-utils';
+import { ListService } from './list.service';
+import { JhiParseLinks } from 'ng-jhipster';
+
+export class ListComponent<T> implements OnInit, AfterViewInit, OnDestroy {
+
+    // A reference of page size selection form
+    public pageSizeSelectionForm: FormGroup;
+    // A reference of search filter form. Make interfaces like pageable, searchable and so on to improve the design.
+    public searchFilterForm: FormGroup;
+    // Stores the list screen specific search object.
+    public searchObject: object;
+    // Stores the name of the fields in the specific for list screen. Call the super class constructor to initialize its value.
+    public fields: any[];
+    // Stores the filter
+    public filterFields: FilterField[];
+    // Stores the list of rows that needs to be rendered on the  UI. Is it of the type T that is passed by the subclass.
+    public items: T[];
+    // Stores the sort config
+    public sortConfig: SortConfig = {
+        ascending: true,
+        callback: this.reset.bind(this),
+        predicate: 'id'
+    };
+    element: any;
+    public predicate: any;
+    public previousPage: any;
+    public reverse: any;
+    // Stores the details of pagination.
+    public pageData: PageData = {
+        currentPage: 0,
+        totalPages: 0,
+        totalItems: 0,
+        itemsPerPage: ITEMS_PER_PAGE,
+        numItemsOnCurrentPage: 0
+    };
+    // Non modifiable array of number which would be used to display page size on the screen.
+    public readonly availablePageSizes: number[] = [
+        10,
+        20,
+        30,
+        40,
+        50
+    ];
+
+    /**
+     * Call the super class construtor to assign variables.
+     * @param fields The fieds of the list screen.
+     */
+    constructor(
+        fields: object[],
+        public activatedRoute: ActivatedRoute,
+        public parseLinks: JhiParseLinks,
+        public router: Router,
+        public spinner: SpinnerService,
+        public listService: ListService<T>,
+        public formBuilder: FormBuilder,
+        public el: ElementRef
+    ) {
+        this.fields = fields;
+        this.filterFields = this.fields;
+        this.searchObject = {};
+        this.items = [];
+        this.activatedRoute = activatedRoute;
+        this.router = router;
+        this.listService = listService;
+        this.element = el.nativeElement;
+    }
+
+    /**
+    * Creates object that will be served as input to createQueryParamsForCurrentUrl
+    */
+    changeStateParams() {
+        if (this.searchObject !== undefined) {
+            QueryParamsStateService.setQueryParams(this.activatedRoute, this.router, this.pageData, this.sortConfig, this.searchObject);
+        } else {
+            QueryParamsStateService.setQueryParams(this.activatedRoute, this.router, this.pageData, this.sortConfig);
+        }
+    }
+    reLoadPage() {
+        this.pageData.currentPage = 0;
+        const sortIcon = 'fa-sort';
+        const sortAscIcon = 'fa-sort-asc';
+        const sortDescIcon = 'fa-sort-desc';
+        const sortIconSelector = 'span.fa';
+        const allThIcons = this.element.querySelectorAll(sortIconSelector);
+        for (let i = 0; i < allThIcons.length; i++) {
+            allThIcons[i].classList.remove(sortAscIcon);
+            allThIcons[i].classList.remove(sortDescIcon);
+            allThIcons[i].classList.add(sortIcon);
+        }
+        this.changeStateParams();
+        this.loadAll();
+    }
+    reset() {
+        this.pageData.currentPage = 0;
+        this.items = [];
+        this.changeStateParams();
+        this.loadAll();
+    }
+
+    loadAll() {
+        const { currentPage, itemsPerPage } = this.pageData;
+        this.spinner.spin(true);
+
+        this.listService.query({
+            page: currentPage,
+            size: itemsPerPage,
+            sort: this.getSortString(),
+            ...this.searchObject
+        }).pipe(ObservableUnsubscriptionUtilities.untilComponentDestroyed(this)).subscribe(
+            (res: HttpResponse<T[]>) => this.onSuccess(res.body, res.headers),
+            (res: HttpErrorResponse) => this.onError(res.message)
+            );
+    }
+
+    private onSuccess(data, headers) {
+        this.spinner.spin(false);
+        const links = this.parseLinks.parse(headers.get('link'));
+        this.items = data;
+        this.pageData = {
+            ...this.pageData,
+            totalItems: parseInt(headers.get('X-Total-Count'), 10),
+            totalPages: links.last,
+            numItemsOnCurrentPage: data.length
+        };
+    }
+
+    private onError(error) {
+        this.spinner.spin(false);
+    }
+
+    getSortString() {
+        const result = [this.sortConfig.predicate + ',' + (this.sortConfig.ascending ? 'asc' : 'desc')];
+        if (this.sortConfig.predicate !== 'id') {
+            result.push('id');
+        }
+        return result;
+    }
+
+    ngOnInit(): void {
+        this.activatedRoute.queryParams.pipe(ObservableUnsubscriptionUtilities.untilComponentDestroyed(this)).subscribe((params) => {
+            if (Object.keys(params).length !== 0) {
+                Object.keys(params).forEach(
+                    (keyName, index, array) => {
+                        switch (keyName) {
+                            case 'itemsPerPage':
+                                this.pageData.itemsPerPage = +params[keyName];
+                                break;
+                            case 'page':
+                                this.pageData.currentPage = +params[keyName];
+                                break;
+                            case 'ascending':
+                                this.sortConfig.ascending = params[keyName];
+                                break;
+                            case 'predicate':
+                                this.sortConfig.predicate = params[keyName];
+                                break;
+                            default:
+                                this.fields.forEach(
+                                    (field, index1, array1) => {
+                                        if (keyName.substr(0, keyName.lastIndexOf('.')) === field.name) {
+                                            this.filterFields[index1]['value'] = params[keyName];
+                                        }
+                                    });
+                        }
+                    });
+            }
+        });
+        this.pageSizeSelectionForm = this.formBuilder.group({
+            pageSizeSelector: [this.pageData.itemsPerPage]
+        });
+        this.pageSizeSelectionForm.get('pageSizeSelector').valueChanges.pipe(ObservableUnsubscriptionUtilities.untilComponentDestroyed(this)).subscribe(
+            (pageSize: number) => {
+                this.onPageSizeChange(pageSize);
+            }
+        );
+    }
+
+    loadPage(page) {
+        this.pageData.currentPage = page;
+        this.changeStateParams();
+        this.loadAll();
+    }
+
+    onPageSizeChange(itemsPerPage: number) {
+        this.pageData.itemsPerPage = itemsPerPage;
+        // Reset the page number back to 0 to avoid having no records to show
+        this.pageData.currentPage = 0;
+        this.changeStateParams();
+        this.loadAll();
+    }
+    ngAfterViewInit(): void {
+        this.loadAll();
+    }
+    ngOnDestroy() {
+
+    }
+    sort() {
+        const result = [this.predicate + ',' + (this.reverse ? 'asc' : 'desc')];
+        if (this.predicate !== 'id') {
+            result.push('id');
+        }
+        return result;
+    }
+
+    onExportClicked(exportType: ExportType, reportName: string) {
+        const { currentPage, itemsPerPage } = this.pageData;
+        this.spinner.spin(true);
+        this.listService.exportReport(exportType, {
+            sort: this.getSortString(),
+            ...this.searchObject
+        }).pipe(ObservableUnsubscriptionUtilities.untilComponentDestroyed(this)).subscribe((file) => {
+            FileSaver.saveAs(new Blob([file.body], { type: exportType.toLowerCase() }), reportName + (exportType === 'XLS' ? 'xlsx' : exportType.toLowerCase()));
+            this.spinner.spin(false);
+        },
+            (error) => {
+                this.spinner.spin(false);
+            });
+    }
+}

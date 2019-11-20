@@ -1,0 +1,48 @@
+import { Directive, Input, Output, EventEmitter, ElementRef } from '@angular/core';
+
+@Directive({
+    selector: '[fhlbnySort]'
+})
+export class SortDirective {
+    @Input() predicate: string;
+    @Input() ascending: boolean;
+    @Input() callback: Function;
+
+    sortIcon = 'fa-sort';
+    sortAscIcon = 'fa-sort-asc';
+    sortDescIcon = 'fa-sort-desc';
+    sortIconSelector = 'span.fa';
+
+    @Output() predicateChange: EventEmitter<any> = new EventEmitter();
+    @Output() ascendingChange: EventEmitter<any> = new EventEmitter();
+
+    element: any;
+
+    constructor(el: ElementRef) {
+        this.element = el.nativeElement;
+    }
+
+    sort(field: any) {
+        this.resetClasses();
+        if (field !== this.predicate) {
+            this.ascending = true;
+        } else {
+            this.ascending = !this.ascending;
+        }
+        this.predicate = field;
+        this.predicateChange.emit(field);
+        this.ascendingChange.emit(this.ascending);
+        this.callback();
+    }
+
+    private resetClasses() {
+        const allThIcons = this.element.querySelectorAll(this.sortIconSelector);
+
+        // Use normal loop instead of forEach because IE does not support forEach on NodeList.
+        for (let i = 0; i < allThIcons.length; i++) {
+            allThIcons[i].classList.remove(this.sortAscIcon);
+            allThIcons[i].classList.remove(this.sortDescIcon);
+            allThIcons[i].classList.add(this.sortIcon);
+        }
+    }
+}

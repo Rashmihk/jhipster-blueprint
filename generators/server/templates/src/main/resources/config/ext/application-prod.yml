@@ -1,0 +1,20 @@
+spring:
+    datasource:
+        # Configuration for database connection
+        #         # password in encrypt form
+
+           url: jdbc:sqlserver://XXXXXX;databaseName=prod01
+           username: boproduser
+           password: ENC(XXXXXXXX)
+jasypt:
+    encryptor:
+        password: fhlbny
+ldap:
+    url: ldap://ws-domainp1.fhlbny.net:389
+    user-dn: OU=Accounts,OU=FHLBNY,DC=fhlbny,DC=net
+    role-prefix: p_
+    role-filter: OU=Production,OU=Back Office,OU=Security Groups,OU=FHLBNY,DC=fhlbny,DC=net 
+help:
+    directory: 
+kerberos.service-principal: HTTP/lx-xxxxx.fhlbny.net@FHLBNY.NET
+kerberos.keytab-location: file:/tomcat/keytab/lx-xxxxx-fhlbnynet.keytab
