@@ -2,9 +2,8 @@
  * @author Faizal Vasaya
  * A utility class that provides method to unsbsribe the observables registered by a component.
  */
-import { Observable } from 'rxjs/Observable';
 import { takeUntil } from 'rxjs/operators';
-import { ReplaySubject } from 'rxjs/ReplaySubject';
+import { Observable, ReplaySubject } from 'rxjs';
 
 // Makes sure that the component to be destroyed had an ngOnDestroy registered.
 export interface OnDestroyLike {

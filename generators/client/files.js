@@ -159,9 +159,7 @@ const angularFiles = {
                 'shared/components/list/list.service.ts',
                 'shared/components/decorator/decorator.component.html',
                 'shared/components/decorator/decorator.component.ts',
-                'shared/components/decorator/layout.model.ts',
-                 // login
-                 'shared/login/login.service.ts',     
+                'shared/components/decorator/layout.model.ts',  
                   /**
  * imported dummy auth server provider, it will replace by ui common auth server provider
  */
@@ -174,55 +172,11 @@ const angularFiles = {
                 'shared/util/datepicker-adapter.ts'
             ]
         },
-        {
-            path: ANGULAR_DIR,
-            condition: generator => generator.authenticationType !== 'oauth2',
-            templates: [
-                // login
-                'shared/login/login.component.ts',
-                { file: 'shared/login/login.component.html', method: 'processHtml' },
-                'shared/login/login-modal.service.ts'
-            ]
-        },
+
         {
             condition: generator => generator.enableTranslation,
             path: ANGULAR_DIR,
             templates: ['shared/language/find-language-from-key.pipe.ts']
-        },
-        {
-            condition: generator => !generator.skipUserManagement || generator.authenticationType === 'oauth2',
-            path: ANGULAR_DIR,
-            templates: [
-                'shared/user/user.model.ts',
-                'shared/user/user.service.ts'
-            ]
-        }
-    ],
-    angularAuthService: [
-        {
-            path: ANGULAR_DIR,
-            templates: [
-                'shared/auth/csrf.service.ts',
-                'shared/auth/state-storage.service.ts',
-                'shared/auth/principal.service.ts',
-                'shared/auth/has-any-authority.directive.ts',
-                'shared/auth/account.service.ts',
-                'shared/auth/user-route-access-service.ts'
-            ]
-        },
-        {
-            condition: generator => generator.authenticationType === 'jwt' || generator.authenticationType === 'uaa',
-            path: ANGULAR_DIR,
-            templates: [
-                'shared/auth/auth-jwt.service.ts'
-            ]
-        },
-        {
-            condition: generator => generator.authenticationType === 'session' || generator.authenticationType === 'oauth2',
-            path: ANGULAR_DIR,
-            templates: [
-                'shared/auth/auth-session.service.ts'
-            ]
         }
     ],
     angularAdminModule: [
@@ -255,20 +209,6 @@ const angularFiles = {
             
         ]
     },
-],
-angularAccountModule: [
-{
-    path: ANGULAR_DIR,
-    condition: generator => generator.authenticationType !== 'oauth2',
-    templates: [
-        'account/activate/activate.service.ts',
-        'account/password/password.service.ts',
-        'account/password/password.component.ts',
-        'account/register/register.service.ts',
-        'account/password-reset/init/password-reset-init.service.ts',
-        'account/password-reset/finish/password-reset-finish.service.ts',
-    ]
-}
 ]
 };
 

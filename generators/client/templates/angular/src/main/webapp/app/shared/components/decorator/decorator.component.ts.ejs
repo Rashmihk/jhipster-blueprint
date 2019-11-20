@@ -25,9 +25,9 @@ export class DecoratorComponent {
     layout?: Layout;
 
     // The template reference element to the template of #formInput
-    @ViewChild('input') inputRef: TemplateRef<any>;
+    @ViewChild('input',{static:false}) inputRef: TemplateRef<any>;
 
     // The template reference element to the template of #formButtonRef
-    @ViewChild('button') buttonRef: TemplateRef<any>;
+    @ViewChild('button',{static:false}) buttonRef: TemplateRef<any>;
 
 }

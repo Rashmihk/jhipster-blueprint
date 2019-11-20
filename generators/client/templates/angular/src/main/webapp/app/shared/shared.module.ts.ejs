@@ -26,14 +26,10 @@ import { SortDirective } from './directives/sort.directive';
 import {
     <%=angularXAppName%>SharedLibsModule,
     <%=angularXAppName%>SharedCommonModule,
-    CSRFService,
-    AuthServerProvider,
-    AccountService,
+    
+    AuthServerProvider,,
     <%_ if (!skipUserManagement || authenticationType === 'oauth2') { _%>
-    UserService,
     <%_ } _%>
-    StateStorageService,
-    LoginService,
     <%_ if (authenticationType !== 'oauth2') { _%>
     LoginModalService,
     <%=jhiPrefixCapitalized%>LoginModalComponent,
@@ -65,10 +61,7 @@ import {
         <%_ if (authenticationType !== 'oauth2') { _%>
         LoginModalService,
         <%_ } _%>
-        AccountService,
-        StateStorageService,
         Principal,
-        CSRFService,
         <%_ if (websocket === 'spring-websocket') { _%>
         <%=jhiPrefixCapitalized%>TrackerService,
         <%_ } _%>
