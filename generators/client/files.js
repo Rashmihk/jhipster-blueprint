@@ -169,7 +169,9 @@ const angularFiles = {
                 'shared/alert/alert.component.ts',
                 'shared/alert/alert-error.component.ts',
                 // dates
-                'shared/util/datepicker-adapter.ts'
+                'shared/util/datepicker-adapter.ts',
+                // login
+                'shared/login/login.service.ts',
             ]
         },
 
@@ -177,39 +179,16 @@ const angularFiles = {
             condition: generator => generator.enableTranslation,
             path: ANGULAR_DIR,
             templates: ['shared/language/find-language-from-key.pipe.ts']
+        },
+        {
+            condition: generator => !generator.skipUserManagement || generator.authenticationType === 'oauth2',
+            path: ANGULAR_DIR,
+            templates: [
+                'shared/user/user.model.ts',
+                'shared/user/user.service.ts'
+            ]
         }
-    ],
-    angularAdminModule: [
-    {
-        path: ANGULAR_DIR,
-        templates: [
-            // admin modules
-            'admin/configuration/configuration.service.ts',
-            'admin/health/health.service.ts',
-            'admin/logs/logs.service.ts',
-            'admin/logs/logs.component.ts',
-            'admin/metrics/metrics.service.ts',
-            'admin/audits/audits.service.ts'
-
-        ]
-    },
-    {
-        condition: generator => (generator.databaseType !== 'no' && generator.databaseType !== 'cassandra'),
-        path: ANGULAR_DIR,
-        templates: [
-             'admin/audits/audits.route.ts',
-            'admin/audits/audits.service.ts'
-        ]
-    },
-       {
-        condition: generator => !generator.skipUserManagement,
-        path: ANGULAR_DIR,
-        templates: [
-           'admin/user-management/user-management.route.ts'
-            
-        ]
-    },
-]
+    ]
 };
 
 module.exports = {

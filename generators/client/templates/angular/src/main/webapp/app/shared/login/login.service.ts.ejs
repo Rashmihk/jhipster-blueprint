@@ -29,7 +29,7 @@ import { JhiLanguageService } from 'ng-jhipster';
  */
 import { AuthServerProvider } from '../auth/auth-jwt.service';
 <%_ } else if (authenticationType === 'session' || authenticationType === 'oauth2') { _%>
-import { AuthServerProvider } from '../auth/auth-session.service';
+<!-- import { AuthServerProvider } from '../auth/auth-session.service'; -->
 <%_ } _%>
 <%_ if (websocket === 'spring-websocket') { _%>
 import { <%=jhiPrefixCapitalized%>TrackerService } from '../tracker/tracker.service';
